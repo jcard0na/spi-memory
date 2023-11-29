@@ -3,6 +3,7 @@
 ## Unreleased
 
 * Implement `Display` for `Error`
+* Add `delay` parameter to `write` and `erase_*` calls
 
 ## 0.2.0 - 2020-03-25
 
