@@ -238,9 +238,10 @@ impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
         Ok(())
     }
 
-    fn wait_done(&mut self) -> Result<(), Error<SPI, CS>> {
-        // TODO: Consider changing this to a delay based pattern
-        while self.read_status()?.contains(Status::BUSY) {}
+    fn wait_done<D: DelayUs<u8>>(&mut self, delay: &mut D) -> Result<(), Error<SPI, CS>> {
+        while self.read_status()?.contains(Status::BUSY) {
+            delay.delay_us(6);
+        }
         Ok(())
     }
 
@@ -322,7 +323,12 @@ impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
         spi_result.map(|_| ()).map_err(Error::Spi)
     }
 
-    pub fn erase_sectors(&mut self, addr: u32, amount: usize) -> Result<(), Error<SPI, CS>> {
+    pub fn erase_sectors<D: DelayUs<u8>>(
+        &mut self,
+        addr: u32,
+        amount: usize,
+        delay: &mut D,
+    ) -> Result<(), Error<SPI, CS>> {
         for c in 0..amount {
             self.write_enable()?;
 
@@ -334,13 +340,18 @@ impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
                 current_addr as u8,
             ];
             self.command(&mut cmd_buf)?;
-            self.wait_done()?;
+            self.wait_done(delay)?;
         }
 
         Ok(())
     }
 
-    pub fn write_bytes(&mut self, addr: u32, data: &mut [u8]) -> Result<(), Error<SPI, CS>> {
+    pub fn write_bytes<D: DelayUs<u8>>(
+        &mut self,
+        addr: u32,
+        data: &mut [u8],
+        delay: &mut D,
+    ) -> Result<(), Error<SPI, CS>> {
         for (c, chunk) in data.chunks_mut(256).enumerate() {
             self.write_enable()?;
 
@@ -359,12 +370,16 @@ impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
             }
             self.cs.set_high().map_err(Error::Gpio)?;
             spi_result.map(|_| ()).map_err(Error::Spi)?;
-            self.wait_done()?;
+            self.wait_done(delay)?;
         }
         Ok(())
     }
 
-    pub fn erase_block(&mut self, addr: u32) -> Result<(), Error<SPI, CS>> {
+    pub fn erase_block<D: DelayUs<u8>>(
+        &mut self,
+        addr: u32,
+        delay: &mut D,
+    ) -> Result<(), Error<SPI, CS>> {
         self.write_enable()?;
 
         let mut cmd_buf = [
@@ -374,14 +389,14 @@ impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
             addr as u8,
         ];
         self.command(&mut cmd_buf)?;
-        self.wait_done()
+        self.wait_done(delay)
     }
 
-    pub fn erase_all(&mut self) -> Result<(), Error<SPI, CS>> {
+    pub fn erase_all<D: DelayUs<u8>>(&mut self, delay: &mut D) -> Result<(), Error<SPI, CS>> {
         self.write_enable()?;
         let mut cmd_buf = [Opcode::ChipErase as u8];
         self.command(&mut cmd_buf)?;
-        self.wait_done()?;
+        self.wait_done(delay)?;
         Ok(())
     }
 }
