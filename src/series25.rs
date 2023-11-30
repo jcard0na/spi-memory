@@ -233,8 +233,10 @@ impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
     }
 
     pub fn write_enable(&mut self) -> Result<(), Error<SPI, CS>> {
-        let mut cmd_buf = [Opcode::WriteEnable as u8];
-        self.command(&mut cmd_buf)?;
+        while !self.read_status()?.contains(Status::WEL) {
+            let mut cmd_buf = [Opcode::WriteEnable as u8];
+            self.command(&mut cmd_buf)?;
+        }
         Ok(())
     }
 
