@@ -249,7 +249,7 @@ impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
     fn wait_done(&mut self) -> Result<(), Error<SPI, CS>> {
         // TODO: Consider changing this to a delay based pattern
         let mut busy = true;
-        const RETRIES :usize = 10;
+        const RETRIES :usize = 3;
         while busy {
             busy = false;
             for _ in 0..RETRIES {

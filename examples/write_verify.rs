@@ -54,15 +54,15 @@ fn main() -> ! {
         const ADDR: u32 = 0x0000_0000;
         match i {
             0..=90 => {
-                hprintln!("sector erase");
+                // hprintln!("sector erase");
                 flash.erase_sectors(ADDR, 1).unwrap();
             }
             91..=98 => {
-                hprintln!("block erase");
+                // hprintln!("block erase");
                 flash.erase_block(ADDR).unwrap();
             },
             99..=100 => {
-                hprintln!("chip erase");
+                // hprintln!("chip erase");
                 flash.erase_all().unwrap();
             },
             _ => (),
@@ -76,7 +76,7 @@ fn main() -> ! {
             // hprintln!("read:  {}", outb.hex());
             fail_count += 1;
         }
-        hprintln!("write iteration {}/{}", i, ITERATIONS);
+        // hprintln!("write iteration {}/{}", i, ITERATIONS);
     }
 
     if fail_count > 0 {
