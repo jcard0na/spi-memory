@@ -4,7 +4,7 @@ use crate::{utils::HexSlice, Error};
 use bitflags::bitflags;
 use core::convert::TryInto;
 use core::fmt;
-use embedded_hal::blocking::{delay::DelayUs, spi::Transfer};
+use embedded_hal::blocking::{delay::DelayUs, spi::{Transfer, Write}};
 use embedded_hal::digital::v2::OutputPin;
 
 /// 3-Byte JEDEC manufacturer and device identification.
@@ -143,7 +143,7 @@ pub struct Flash<SPI, CS: OutputPin> {
 
 // for multiple SPI use: https://crates.io/crates/shared-bus-rtic
 
-impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
+impl<SPI: Transfer<u8> + Write<u8>, CS: OutputPin> Flash<SPI, CS> {
     /// Creates a new 25-series flash driver.
     ///
     /// # Parameters
@@ -355,8 +355,8 @@ impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
         Ok(())
     }
 
-    pub fn write_bytes(&mut self, addr: u32, data: &mut [u8]) -> Result<(), Error<SPI, CS>> {
-        for (c, chunk) in data.chunks_mut(256).enumerate() {
+    pub fn write_bytes(&mut self, addr: u32, data: &[u8]) -> Result<(), Error<SPI, CS>> {
+        for (c, chunk) in data.chunks(256).enumerate() {
             self.write_enable()?;
 
             let current_addr: u32 = (addr as usize + c * 256).try_into().unwrap();
@@ -368,9 +368,9 @@ impl<SPI: Transfer<u8>, CS: OutputPin> Flash<SPI, CS> {
             ];
 
             self.cs.set_low().map_err(Error::Gpio)?;
-            let mut spi_result = self.spi.transfer(&mut cmd_buf);
+            let spi_result = self.spi.transfer(&mut cmd_buf);
             if spi_result.is_ok() {
-                spi_result = self.spi.transfer(chunk);
+                let _ = self.spi.write(chunk);
             }
             self.cs.set_high().map_err(Error::Gpio)?;
             spi_result.map(|_| ()).map_err(Error::Spi)?;
